@@ -23,6 +23,10 @@ Clips are saved in `~/StreamClips/<date>/<topic>/<creator>__<title>/` (Windows: 
    - macOS: `brew install ffmpeg deno`
    - Windows: `winget install Gyan.FFmpeg` and `winget install DenoLand.Deno`
 3. `streamclips doctor` checks the install at any time.
+4. **Home drive too full?** Two environment variables move everything to another drive. Set them once, open a new terminal, then run setup:
+   - `STREAMCLIPS_ENV`: where the Python environment, models and download caches go (default `~/.streamclips`)
+   - `STREAMCLIPS_HOME`: where audio, cache and finished clips go (default `~/StreamClips`)
+   - Windows example: `setx STREAMCLIPS_ENV "D:\StreamClipsEnv"` and `setx STREAMCLIPS_HOME "D:\StreamClips"`
 
 ## 1. What happens to each stream
 

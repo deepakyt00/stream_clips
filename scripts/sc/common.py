@@ -19,7 +19,7 @@ IS_MAC = sys.platform == "darwin"
 
 DATA = Path(os.environ.get("STREAMCLIPS_HOME", Path.home() / "StreamClips"))
 CACHE = DATA / ".cache"
-ENV_DIR = Path.home() / ".streamclips"
+ENV_DIR = Path(os.environ.get("STREAMCLIPS_ENV") or Path.home() / ".streamclips")
 MODELS = ENV_DIR / "models"
 
 _print_lock = threading.Lock()
