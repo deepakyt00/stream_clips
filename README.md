@@ -21,7 +21,9 @@ word-by-word captions, plus a caption and hashtags for each clip.
   - macOS: `brew install ffmpeg deno`
   - Windows: `winget install Gyan.FFmpeg` and `winget install DenoLand.Deno`
 - **Python 3.9 or newer** (Windows: `winget install Python.Python.3.12`)
-- About 1 GB of free disk space
+- About 1 GB of free disk space (3 GB free on the drive it installs to). To install on another
+  drive, set `STREAMCLIPS_ENV` (packages and models) and `STREAMCLIPS_HOME` (clips), e.g. on
+  Windows `setx STREAMCLIPS_ENV "D:\StreamClipsEnv"` and `setx STREAMCLIPS_HOME "D:\StreamClips"`
 
 ## Install
 

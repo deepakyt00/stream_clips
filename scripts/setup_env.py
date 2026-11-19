@@ -15,7 +15,9 @@ from pathlib import Path
 
 IS_WIN = os.name == "nt"
 IS_MAC = sys.platform == "darwin"
-ENV_DIR = Path.home() / ".streamclips"
+# STREAMCLIPS_ENV moves the Python env and models off the home drive (e.g. D:\StreamClipsEnv).
+CUSTOM_ENV = os.environ.get("STREAMCLIPS_ENV")
+ENV_DIR = Path(CUSTOM_ENV) if CUSTOM_ENV else Path.home() / ".streamclips"
 VENV = ENV_DIR / "venv"
 VENV_PY = VENV / ("Scripts/python.exe" if IS_WIN else "bin/python")
 MODELS = ENV_DIR / "models"
@@ -40,6 +42,25 @@ def bad(msg, fix):
 
 def hint(mac, win, linux):
     return mac if IS_MAC else win if IS_WIN else linux
+
+
+def existing(path):
+    """The nearest folder that exists at or above `path` (to measure its drive)."""
+    path = Path(path).absolute()
+    while not path.exists() and path != path.parent:
+        path = path.parent
+    return path
+
+
+def child_env():
+    """With STREAMCLIPS_ENV set, keep the download caches on that drive too."""
+    env = dict(os.environ)
+    if CUSTOM_ENV:
+        cache = ENV_DIR / "cache"
+        env.setdefault("PIP_CACHE_DIR", str(cache / "pip"))
+        env.setdefault("UV_CACHE_DIR", str(cache / "uv"))
+        env.setdefault("HF_HOME", str(cache / "huggingface"))
+    return env
 
 
 def check_tools():
@@ -71,12 +92,18 @@ def check_tools():
     else:
         print("  [note] no claude/codex/gemini/opencode CLI on PATH: moments will be picked by the "
               "agent itself (--brain agent)")
-    free = shutil.disk_usage(Path.home()).free / 1e9
+    where = existing(ENV_DIR)
+    free = shutil.disk_usage(where).free / 1e9
     if free < 3:
-        bad(f"only {free:.1f} GB free", "free up space: setup needs ~1 GB, clipping ~0.15 GB per stream hour")
+        bad(f"only {free:.1f} GB free on the drive of {ENV_DIR}",
+            "free up space (setup needs ~1 GB, clipping ~0.15 GB per stream hour), or install on "
+            "another drive by setting STREAMCLIPS_ENV, e.g. " + hint(
+                "export STREAMCLIPS_ENV=/Volumes/Big/streamclips-env",
+                'setx STREAMCLIPS_ENV "D:\\StreamClipsEnv"  (then open a new terminal)',
+                "export STREAMCLIPS_ENV=/mnt/big/streamclips-env"))
         missing = True
     else:
-        good(f"disk: {free:.0f} GB free")
+        good(f"disk: {free:.0f} GB free for {ENV_DIR}")
     return not missing
 
 
@@ -85,12 +112,12 @@ def make_venv():
     if VENV_PY.exists():
         good("private Python env exists")
         return
-    print("Creating a private Python env in ~/.streamclips (keeps your system Python clean)...")
+    print(f"Creating a private Python env in {ENV_DIR} (keeps your system Python clean)...")
     uv = shutil.which("uv")
     if uv:
         for version in ("3.12", "3.11", None):
             cmd = [uv, "venv", "-q", str(VENV)] + (["--python", version] if version else [])
-            if subprocess.run(cmd).returncode == 0 and VENV_PY.exists():
+            if subprocess.run(cmd, env=child_env()).returncode == 0 and VENV_PY.exists():
                 break
     if not VENV_PY.exists():
         subprocess.run([sys.executable, "-m", "venv", str(VENV)], check=True)
@@ -103,9 +130,10 @@ def install_packages():
     if uv:
         cmd = [uv, "pip", "install", "-q", "--python", str(VENV_PY), "-U", *PACKAGES]
     else:
-        subprocess.run([str(VENV_PY), "-m", "pip", "install", "-q", "-U", "pip"], check=True)
+        subprocess.run([str(VENV_PY), "-m", "pip", "install", "-q", "-U", "pip"], check=True,
+                       env=child_env())
         cmd = [str(VENV_PY), "-m", "pip", "install", "-q", "-U", *PACKAGES]
-    subprocess.run(cmd, check=True)
+    subprocess.run(cmd, check=True, env=child_env())
     good("Python packages")
 
 
@@ -118,7 +146,7 @@ def download_models():
         "    WhisperModel(n, device='cpu', compute_type='int8', download_root=sys.argv[1])\n"
     )
     (MODELS / "whisper").mkdir(parents=True, exist_ok=True)
-    subprocess.run([str(VENV_PY), "-c", code, str(MODELS / "whisper")], check=True)
+    subprocess.run([str(VENV_PY), "-c", code, str(MODELS / "whisper")], check=True, env=child_env())
     good("Whisper models (tiny = scanning the stream, base = captions)")
     face = MODELS / "face_yunet.onnx"
     if not face.exists() or face.stat().st_size < 10000:

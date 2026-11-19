@@ -17,7 +17,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 IS_WIN = os.name == "nt"
-VENV = Path.home() / ".streamclips" / "venv"
+VENV = Path(os.environ.get("STREAMCLIPS_ENV") or Path.home() / ".streamclips") / "venv"
 VENV_PY = VENV / ("Scripts/python.exe" if IS_WIN else "bin/python")
 
 
