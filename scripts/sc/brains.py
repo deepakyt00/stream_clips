@@ -64,6 +64,9 @@ def _child_env():
     for key in ("CLAUDECODE", "CLAUDE_CODE_ENTRYPOINT"):
         env.pop(key, None)
     env["NO_COLOR"] = "1"
+    # Gemini CLI refuses to run headless in a folder it has not been told to trust. The
+    # picker only ever runs in this tool's own scratch folder, so trust it for this call.
+    env.setdefault("GEMINI_CLI_TRUST_WORKSPACE", "true")
     return env
 
 
